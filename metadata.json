@@ -1,0 +1,5 @@
+{
+  "name": "Agent Capability Control System",
+  "description": "A secure dashboard to manage AI agents, assign capabilities, and proxy API calls with short-lived tokens.",
+  "requestFramePermissions": []
+}

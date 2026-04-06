@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "agent": {
+      "title": "AI Agent",
+      "description": "An AI agent with specific capabilities.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the agent" },
+        "description": { "type": "string", "description": "Description of the agent's role" },
+        "capabilities": { "type": "array", "items": { "type": "string" }, "description": "List of capability IDs" },
+        "ownerId": { "type": "string", "description": "UID of the user who owns this agent" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      },
+      "required": ["name", "ownerId", "capabilities"]
+    },
+    "capability": {
+      "title": "Capability",
+      "description": "A specific permission or API access.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "api": { "type": "string", "enum": ["stripe", "razorpay", "gemini", "chatgpt", "google", "custom"] },
+        "scope": { "type": "string" }
+      },
+      "required": ["name", "api", "scope"]
+    },
+    "auditLog": {
+      "title": "Audit Log",
+      "description": "Record of agent API calls.",
+      "type": "object",
+      "properties": {
+        "agentId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "api": { "type": "string" },
+        "endpoint": { "type": "string" },
+        "status": { "type": "integer" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "payload": { "type": "string" }
+      },
+      "required": ["agentId", "ownerId", "api", "endpoint", "status", "timestamp"]
+    },
+    "secret": {
+      "title": "Secret",
+      "description": "Encrypted or sensitive API keys/tokens.",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "description": "The name of the secret (e.g., STRIPE_KEY)" },
+        "value": { "type": "string", "description": "The secret value (stored in plain text for this prototype, but owner-protected)" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["key", "value", "ownerId"]
+    }
+  },
+  "firestore": {
+    "agents": {
+      "schema": "agent",
+      "description": "Collection of AI agents."
+    },
+    "capabilities": {
+      "schema": "capability",
+      "description": "Collection of available capabilities."
+    },
+    "auditLogs": {
+      "schema": "auditLog",
+      "description": "Collection of audit logs for API calls."
+    },
+    "secrets": {
+      "schema": "secret",
+      "description": "Collection of sensitive API keys and tokens."
+    }
+  }
+}

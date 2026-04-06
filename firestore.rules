@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: agents
+    // Fields: name, description, capabilities, ownerId, createdAt, status
+    //
+    // Collection: capabilities
+    // Fields: name, description, api, scope
+    //
+    // Collection: auditLogs
+    // Fields: agentId, ownerId, api, endpoint, status, timestamp, payload
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isDocOwner() {
+      return isAuthenticated() && (
+        (resource != null && request.auth.uid == resource.data.ownerId) ||
+        (resource == null && request.resource.data.ownerId == request.auth.uid)
+      );
+    }
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+    function isAdmin() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        request.auth.token.email == "amarsingh0887609@gmail.com"
+      );
+    }
+
+    // Agent Validation
+    function isValidAgent(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.ownerId == request.auth.uid &&
+             data.capabilities is list && data.capabilities.size() <= 20;
+    }
+
+    match /agents/{agentId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidAgent(request.resource.data);
+      allow update: if isDocOwner() && isValidAgent(request.resource.data) && 
+                    request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isDocOwner();
+    }
+
+    match /capabilities/{capId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isDocOwner() || isAdmin();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /secrets/{secretId} {
+      allow read, update, delete: if isDocOwner();
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.role == 'user';
+      allow update: if isOwner(userId) && request.resource.data.role == resource.data.role;
+    }
+  }
+}
